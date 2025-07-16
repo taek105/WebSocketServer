@@ -18,8 +18,12 @@
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_NODE_ID: 1
       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENERS: INTERNAL://Kafka 컨테이너 내부에서 INTERNAL 포트 바인딩 ,EXTERNAL://Kafka 컨테이너 내부에서 EXTERNAL 포트 바인딩
-      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://INTERNAL 연결에게 알려주는 Kakfa 브로커 위치, EXTERNAL://EXTERNAL 연결에게 알려주는 Kakfa 브로커 위치
+      KAFKA_CFG_LISTENERS: |
+        INTERNAL://Kafka 컨테이너 내부에서 INTERNAL 포트 바인딩,
+        EXTERNAL://Kafka 컨테이너 내부에서 EXTERNAL 포트 바인딩
+      KAFKA_CFG_ADVERTISED_LISTENERS: |
+        INTERNAL://INTERNAL 연결에게 알려주는 Kakfa 브로커 위치,
+        EXTERNAL://EXTERNAL 연결에게 알려주는 Kakfa 브로커 위치
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
     ports:
