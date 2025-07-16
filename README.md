@@ -1,11 +1,13 @@
-# Client <--웹소켓--> Spring <-> Kafka 연동 예제 
+# Spring Kafka 익명 채팅 예제 
 
+## Spring <-> Kafka
 
+<img width="856" height="480" alt="image" src="https://github.com/user-attachments/assets/1ac90909-40e5-48ba-8a2f-e3110a9cdda3" />
 
-#### Spring <-> Kafka
 1. Spring 환경변수에 명시된 Kafka 주소로 접근
 2. Kafka가 다시 Kafka 브로커 주소(ADVERTISED_LISTENERS) 알려줌
 3. Spring은 (ADVERTISED_LISTENERS)로 다시 접근
+
 ``` yaml
   kafka:
     image: bitnami/kafka:3.6
