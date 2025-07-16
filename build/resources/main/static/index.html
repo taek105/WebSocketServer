@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>chatRoomId=42</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* 기본 레이아웃 */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f3f4f6;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont;
+    }
+    #chatbox {
+      width: min(90%, 480px);
+      height: 70vh;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    #log {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background: #fafafa;
+      border-top-left-radius: 0.75rem;
+      border-top-right-radius: 0.75rem;
+      /* 메시지 컨테이너를 가로 중앙이 아닌 시작점에 붙이기 */
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    /* 메시지 박스 */
+    .msg {
+      position: relative;
+      margin-bottom: 0.5rem;
+      /* 최대 너비만 제한, 실제 너비는 내용 크기에 맞춤 */
+      max-width: 80%;
+      /* flex-item 이므로 기본 width:auto → 내용 크기대로 축소됨 */
+    }
+    /* 오른쪽으로 붙일 메시지 */
+    .msg.self {
+      align-self: flex-end;  /* margin-left:auto 대신 이것만 있으면 우측 정렬 */
+    }
+
+    /* 실제 텍스트 영역(블러 대상) */
+    .msg .content {
+      display: inline-block;  /* 블록이지만 내용 크기에 딱 맞춤 */
+      padding: 0.5rem 0.75rem;
+      background: #e5e7eb;
+      border-radius: 0.5rem;
+      word-break: break-all;
+      transition: filter 0.3s ease;
+    }
+    .msg.self .content {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    .msg.sys .content {
+      background: transparent;
+      color: #6b7280;
+      font-style: italic;
+      padding: 0;
+      max-width: none;
+    }
+
+    /* 블러된 상태 */
+    .msg.blurred .content {
+      filter: blur(4px);
+      cursor: pointer;
+    }
+
+    /* 검열 사유 */
+    .msg .reason {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.8);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      color: #dc2626;
+      font-size: 0.75rem;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #inputbar {
+      display: flex;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    #inputbar input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+    }
+    #inputbar button {
+      margin-left: 0.5rem;
+      padding: 0 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      background: #3b82f6;
+      color: #fff;
+      cursor: pointer;
+    }
+    #inputbar button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+<div id="chatbox">
+  <div id="log"></div>
+  <form id="inputbar" autocomplete="off">
+    <input id="msg" type="text" placeholder="메시지를 입력하세요…" aria-label="chat message" />
+    <button type="submit" disabled>전송</button>
+  </form>
+</div>
+
+<script>
+  (() => {
+    const ROOM_ID = 42;
+    const WS_URL = `ws://localhost:8000/ws?roomId=${ROOM_ID}`;
+    const log = document.getElementById("log");
+    const form = document.getElementById("inputbar");
+    const input = document.getElementById("msg");
+    const sendBtn = form.querySelector("button");
+
+    let ws, myNick = null;
+    connect();
+
+    function connect() {
+      ws = new WebSocket(WS_URL);
+      ws.addEventListener("open", () => {
+        appendSys("✅ WebSocket 연결됨");
+        sendBtn.disabled = false;
+      });
+      ws.addEventListener("message", ev => {
+        let data;
+        try { data = JSON.parse(ev.data); }
+        catch { console.error("잘못된 메시지:", ev.data); return; }
+
+        if (data.type === "welcome") {
+          myNick = data.nickname;
+          appendSys(`🆕 ${myNick} 로 입장했습니다`);
+          return;
+        }
+        if (data.roomId !== ROOM_ID) return;
+
+        // ChatMessage
+        if (typeof data.messageId === "number"
+            && typeof data.user === "string"
+            && typeof data.content === "string") {
+          const self = data.user === myNick;
+          appendMsg(data.user, data.content, self, data.messageId);
+          return;
+        }
+
+        // ModerationResponse
+        if (typeof data.messageId === "number"
+            && typeof data.isSafe === "boolean") {
+          const msgEl = document.getElementById(`msg-${data.messageId}`);
+          if (!msgEl) return;
+          const old = msgEl.querySelector(".reason");
+          if (old) old.remove();
+
+          if (!data.isSafe) {
+            msgEl.classList.add("blurred");
+            const reasonEl = document.createElement("div");
+            reasonEl.className = "reason";
+            reasonEl.textContent = `이유: ${data.reason}`;
+            msgEl.appendChild(reasonEl);
+            msgEl.addEventListener("click", function onClick() {
+              msgEl.classList.remove("blurred");
+              reasonEl.remove();
+              msgEl.removeEventListener("click", onClick);
+            });
+          } else {
+            msgEl.classList.remove("blurred");
+          }
+        }
+      });
+      ws.addEventListener("close", () => {
+        appendSys("❌ 연결이 끊어졌습니다. 3초 후 재접속 시도…");
+        sendBtn.disabled = true;
+        setTimeout(connect, 3000);
+      });
+      ws.addEventListener("error", err => {
+        appendSys("⚠️ 에러 발생: " + err.message);
+      });
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ roomId: ROOM_ID, user: myNick, content: text }));
+      input.value = "";
+    });
+
+    function appendMsg(sender, text, self, id) {
+      const div = document.createElement("div");
+      div.className = `msg${self ? " self" : ""}`;
+      div.id = `msg-${id}`;
+      const content = document.createElement("div");
+      content.className = "content";
+      content.textContent = `[${sender}] ${text}`;
+      div.appendChild(content);
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function appendSys(text) {
+      const div = document.createElement("div");
+      div.className = "msg sys";
+      const content = document.createElement("div");
+      content.className = "content";
+      content.textContent = text;
+      div.appendChild(content);
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+  })();
+</script>
+</body>
+</html>

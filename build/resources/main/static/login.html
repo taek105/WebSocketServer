@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>login</title>
+    <style>
+        /* --- 인라인 CSS --- */
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body       { margin: 0; background:#f5f7fa; display:flex; justify-content:center; align-items:center; height:100vh; }
+        .container { width:320px; padding:32px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+        h1         { margin:0 0 24px; text-align:center; font-size:24px; }
+        label      { display:block; margin-bottom:4px; font-weight:600; }
+        input      { width:100%; padding:10px 12px; margin-bottom:16px; border:1px solid #ccc; border-radius:6px; }
+        button     { width:100%; padding:12px 0; border:none; border-radius:6px; background:#0064ff; color:#fff; font-weight:700; cursor:pointer; }
+        button:hover { background:#0050d4; }
+        .error     { color:#d32f2f; margin-bottom:16px; font-size:14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>관리자 로그인</h1>
+
+    <form action="/login" method="post">
+        <label for="username">아이디</label>
+        <input id="username" name="username" type="text" required autofocus>
+
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" required>
+
+        <div class="error" style="display: [[${param.error} ? 'block' : 'none']];">
+            아이디 또는 비밀번호가 올바르지 않습니다.
+        </div>
+
+        <button type="submit">로그인</button>
+    </form>
+</div>
+</body>
+</html>
