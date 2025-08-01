@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN ./gradlew --no-daemon clean bootJar
+RUN sh ./gradlew --no-daemon clean bootJar
 
 #2단계 : 런타임
 FROM eclipse-temurin:17-jre-jammy
